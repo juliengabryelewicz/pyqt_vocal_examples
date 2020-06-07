@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "page": {
+      "automatically_extensible": false,
+      "data": [
+        {
+          "synonyms": [
+            "accueil"
+          ],
+          "value": "page d'accueil"
+        },
+        {
+          "synonyms": [
+            "blague",
+            "l'orque"
+          ],
+          "value": "blog"
+        },
+        {
+          "synonyms": [
+            "curriculum vitae"
+          ],
+          "value": "cv"
+        },
+        {
+          "synonyms": [],
+          "value": "mentions l\u00e9gales"
+        }
+      ],
+      "matching_strictness": 1.0,
+      "use_synonyms": true
+    }
+  },
+  "intents": {
+    "gotopage": {
+      "utterances": [
+        {
+          "data": [
+            {
+              "text": "retourne \u00e0 la "
+            },
+            {
+              "entity": "page",
+              "slot_name": "page",
+              "text": "page d'accueil"
+            },
+            {
+              "text": " s'il te plait"
+            }
+          ]
+        },
+        {
+          "data": [
+            {
+              "text": "va au "
+            },
+            {
+              "entity": "page",
+              "slot_name": "page",
+              "text": "blog"
+            }
+          ]
+        },
+        {
+          "data": [
+            {
+              "text": "affiche moi les "
+            },
+            {
+              "entity": "page",
+              "slot_name": "page",
+              "text": "mentions l\u00e9gales"
+            }
+          ]
+        },
+        {
+          "data": [
+            {
+              "text": "montre moi le "
+            },
+            {
+              "entity": "page",
+              "slot_name": "page",
+              "text": "cv"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "language": "fr"
+}

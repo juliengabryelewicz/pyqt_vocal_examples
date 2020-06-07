@@ -1,6 +1,5 @@
-import folium
-from folium.plugins import MarkerCluster
 import os
+import io
 import json
 import pyaudio
 from PyQt5 import QtGui
@@ -12,6 +11,19 @@ import requests
 import sys
 import threading
 from vosk import Model, KaldiRecognizer
+from snips_nlu import SnipsNLUEngine
+from snips_nlu.default_configs import CONFIG_FR
+
+class Nlu:
+    nlu_engine = SnipsNLUEngine(config=CONFIG_FR)
+
+    def __init__(self,fileNlu):
+        with io.open(fileNlu) as f:
+            sample_dataset = json.load(f)
+        self.nlu_engine = self.nlu_engine.fit(sample_dataset)
+
+    def parse(self,text):
+        return self.nlu_engine.parse(text)
 
 class VocalThread(QThread):
     get_vocal_message = pyqtSignal(str)
@@ -21,6 +33,7 @@ class VocalThread(QThread):
         p = pyaudio.PyAudio()
         stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8000)
         stream.start_stream()
+        nlu = Nlu("nlu/fr_FR/navigate_website.json")
 
         ##VOSK
         model = Model("model/fr_FR")
@@ -32,48 +45,45 @@ class VocalThread(QThread):
             if rec.AcceptWaveform(data):
                 result = re.findall(r'(?<=text")(?:\s*\:\s*)(".{0,23}?(?=")")', rec.Result(), re.IGNORECASE+re.DOTALL)
                 if len(result) > 0:
-                    self.get_vocal_message.emit(result[0].replace('"',''))
+                    parsing = nlu.parse(result[0].replace('"','').replace("'"," "))
+                    if parsing["intent"]["intentName"] is not None:
+                        self.get_vocal_message.emit(json.dumps(parsing))
 
 
 class App(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("change map")
+        self.setWindowTitle("navigate web site")
+        self.actual_url = "https://juliengabryelewicz.fr"
         self.disply_width = 640
         self.display_height = 480
         self.browser = QWebEngineView()
-        self.show_location(0,0)
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        filename = os.path.join(current_dir, 'show_city.html')
-        url = QUrl.fromLocalFile(filename)
-        self.browser.setUrl(url)
+        self.browser.setUrl(QUrl(self.actual_url))
         vbox = QVBoxLayout()
         vbox.addWidget(self.browser)
         self.setLayout(vbox)
 
         self.thread = VocalThread()
-        self.thread.get_vocal_message.connect(self.search_location)
+        self.thread.get_vocal_message.connect(self.go_to_page)
         self.thread.start()
 
     @pyqtSlot(str)
-    def search_location(self, text):
-        result = requests.get("http://www.mapquestapi.com/geocoding/v1/address?key=your-key&location="+text)
-        print(text)
-        result_text = result.text
-        lat = float(re.findall(r'(?<="lat")(?:\s*\:\s*)(.{0,23}?(?=,))', result_text, re.IGNORECASE+re.DOTALL)[0])
-        lng = float(re.findall(r'(?<="lng")(?:\s*\:\s*)(.{0,23}?(?=}))', result_text, re.IGNORECASE+re.DOTALL)[0])
-        statuscode = int(re.findall(r'(?<="statuscode")(?:\s*\:\s*)(.{0,23}?(?=,))', result_text, re.IGNORECASE+re.DOTALL)[0])
-        if statuscode == 0:
-            self.show_location(lat, lng)
-            self.reload_map()
+    def go_to_page(self, text):
+        json_nlu = json.loads(text)
+        switcher = {
+        "blog": "https://juliengabryelewicz.fr/blog",
+        "cv": "https://juliengabryelewicz.fr/page/cv",
+        "page d'accueil": "https://juliengabryelewicz.fr/",
+        "mentions légales": "https://juliengabryelewicz.fr/page/mentions-legales",
+        }
+        if(len(json_nlu["slots"]) > 0):
+            new_link = switcher.get(json_nlu["slots"][0]["value"]["value"], "")
+            if new_link != "":
+                self.actual_url = new_link
+                self.browser.setUrl(QUrl(self.actual_url))
 
-    def reload_map(self):
-        self.browser.reload()
 
-    def show_location(self, lat, lng):
-        mappy = folium.Map(location=[lat,lng],tiles = "OpenStreetMap",zoom_start = 13)
-        folium.Marker([lat,lng]).add_to(mappy)
-        mappy.save('show_city.html')
+        
     
 if __name__=="__main__":
     app = QApplication(sys.argv)

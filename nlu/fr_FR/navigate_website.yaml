@@ -1,0 +1,23 @@
+# gotopage intent
+---
+type: intent
+name: gotopage
+slots:
+  - name: page
+    entity: page
+utterances:
+  - retourne à la [page](page d'accueil) s'il te plait
+  - va au [page](blog)
+  - affiche moi les [page](mentions légales)
+  - montre moi le [page](cv)
+
+# person entity
+---
+type: entity
+name: page
+automatically_extensible: no
+values:
+- [page d'accueil, accueil]
+- [blog, blague, l'orque]
+- [cv, curriculum vitae]
+- mentions légales
